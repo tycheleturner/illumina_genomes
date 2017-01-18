@@ -1,4 +1,6 @@
 #HLA-VBSeq pipeline
+#Tychele N. Turner, Ph.D.
+
 import os
 
 if config == {}:
