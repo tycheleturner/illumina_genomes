@@ -1,0 +1,6 @@
+{
+  "data_dir":"/path/to/bam/directory/",
+  "reference": "/path/to/reference/genome.fasta",
+  "vt": "/path/to/vt",
+  "tmpdir": "/name/of/your/tmpdir/"
+}

@@ -1,0 +1,81 @@
+#Tychele Turner
+#VT pipeline
+
+import os
+
+if config == {}:
+    configfile: "config_vt.json"
+
+REFERENCE = config["reference"]
+DATA_DIR = config["data_dir"]
+VT = config["vt"]
+TMPDIR = config["tmpdir"]
+
+SAMPLES = []
+for file in os.listdir(DATA_DIR):
+    if file.endswith(".final.bam"):
+        SAMPLES.append(str(file).split('.final.bam')[0].split('.')[0])
+
+SAMPLES2 = list(set(SAMPLES))
+SAMPLES = SAMPLES2
+
+print(SAMPLES)
+
+rule all:
+        input: expand("%s/{sample}.final.bam" % DATA_DIR, sample = SAMPLES), expand("{sample}.vt.vcf", sample = SAMPLES), expand("{sample}.vt.no.overlap.vcf", sample = SAMPLES),  expand("{sample}.vt.no.overlap.indel.label.vcf", sample = SAMPLES)
+		params: sge_opts="-l mfree=20G -N run_all" 
+
+rule vt_indel_vntr:
+    input: "{sample}.vt.no.overlap.vcf"
+    output: "{sample}.vt.no.overlap.indel.label.vcf"
+    log: "{sample}.vt.no.overlap.indel.label.log"
+    params: prefix="{sample}", sge_opts="-l h_vmem=5G,disk_free=20G,h_rt=72:00:00 -N vtIL -cwd "
+    shell: """
+    START=$(date +%s)
+
+    rsync -a {REFERENCE} {TMPDIR}
+    {VT} annotate_indels {input} -r {TMPDIR}human_g1k_v37.fasta -o {output}
+
+    END=$(date +%s)
+    DIFF=$(( $END - $START ))
+    echo "$DIFF" &> {log}
+
+    """
+
+rule vt_remove_overlap:
+    input: "{sample}.vt.vcf"
+    output: "{sample}.vt.no.overlap.vcf"
+    log: "{sample}.vt.no.overlap.log"
+    params: prefix="{sample}", sge_opts="-l h_vmem=5G,disk_free=20G,h_rt=72:00:00 -N vtNov -cwd "
+    shell: """
+    START=$(date +%s)
+
+    {VT} remove_overlap {input} -o {output}
+
+    END=$(date +%s)
+    DIFF=$(( $END - $START ))
+    echo "$DIFF" &> {log}
+
+    """
+
+rule vt:
+    input: "%s/{sample}.final.bam"%DATA_DIR
+    output: "{sample}.vt.vcf"
+    log: "{sample}.vt.log"
+    params: prefix="{sample}", sge_opts="-l h_vmem=5G,disk_free=20G,h_rt=72:00:00 -N vt -cwd "
+    shell: """
+    START=$(date +%s)
+
+    rsync -a {REFERENCE} {TMPDIR}
+    {VT} discover -b {input} -s {params.prefix} -r {TMPDIR}human_g1k_v37.fasta -o {output}
+
+    END=$(date +%s)
+    DIFF=$(( $END - $START ))
+    echo "$DIFF" &> {log}
+
+    """
+
+rule clean:
+    """clean up temporary files"""
+    shell: """
+    """
