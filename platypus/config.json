@@ -1,0 +1,4 @@
+{
+  "reference":"/path/to/reference/genome.fasta",
+  "data_dir": "/path/to/bam/folder/",
+}
